@@ -19,7 +19,7 @@
 .
 ├── index.js          # 服务器入口文件
 ├── package.json      # 项目依赖配置
-└── index.html        # 前端测试页面
+└── test.html        # 前端测试页面
 ```
 
 ## 安装和运行
@@ -27,7 +27,7 @@
 1. 安装依赖:
 
    ```
-   pnpm install
+   pnpm i
    ```
 
 2. 启动服务器:
@@ -39,7 +39,7 @@
    或者在开发模式下运行:
 
    ```
-   pnpm run dev
+   pnpm dev
    ```
 
 3. 打开 `index.html` 文件在浏览器中测试
@@ -113,7 +113,12 @@ Authorization: Bearer <accessToken>
   "code": 200,
   "msg": "OK",
   "data": [
-    { "id": 1, "username": "admin", "password": "password123", "role": "admin" },
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "password123",
+      "role": "admin"
+    },
     { "id": 2, "username": "user", "password": "user123", "role": "user" }
   ]
 }
@@ -137,7 +142,12 @@ Authorization: Bearer <accessToken>
 {
   "code": 200,
   "msg": "OK",
-  "data": { "id": 1, "username": "admin", "password": "password123", "role": "admin" }
+  "data": {
+    "id": 1,
+    "username": "admin",
+    "password": "password123",
+    "role": "admin"
+  }
 }
 ```
 

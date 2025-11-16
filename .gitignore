@@ -1,2 +1,2 @@
-.trae
-node_modules
+*.trae
+/node_modules
