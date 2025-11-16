@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>API 测试页</title>
+    <style>
+      body {
+        font-family: system-ui, Arial, sans-serif;
+        margin: 24px;
+      }
+      h1 {
+        margin: 0 0 12px;
+      }
+      section {
+        border: 1px solid #ddd;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 6px;
+      }
+      label {
+        width: 140px;
+        flex: 0 0 140px;
+      }
+      input {
+        flex: 1 1 auto;
+        min-width: 480px;
+        max-width: 100%;
+      }
+      button {
+        margin-left: 8px;
+      }
+      pre {
+        background: #f6f8fa;
+        padding: 12px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+      .row {
+        margin: 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .row.nowrap {
+        white-space: nowrap;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>API 测试</h1>
+    <p>
+      注意：如果修改了后端 `.env` 的 `BASE_PATH`，请同步更新本页顶部的
+      `BASE_PATH` 常量。
+    </p>
+
+    <script>
+      const BASE_URL = "http://localhost:3000";
+      const BASE_PATH = "";
+      let accessToken = "";
+      let refreshToken = "";
+      function joinUrl(base, path) {
+        const b = (base || "").replace(/\/+$/, "");
+        const p = (path || "").replace(/^\/+/, "");
+        return b + (p ? "/" + p : "");
+      }
+      function buildBase() {
+        const bp = (BASE_PATH || "").replace(/^\/+/, "").replace(/\/+$/, "");
+        return bp ? joinUrl(BASE_URL, bp) : BASE_URL.replace(/\/+$/, "");
+      }
+      function updateHeadings() {
+        document.querySelectorAll("h2").forEach((h) => {
+          h.innerHTML = h.innerHTML.replaceAll("{BASE_PATH}", BASE_PATH);
+        });
+      }
+      function setUserDetailHeading() {
+        const idEl = document.getElementById("userIdInput");
+        const idVal = (idEl && idEl.value ? idEl.value.trim() : "") || "{id}";
+        const heading = document.getElementById("userDetailHeading");
+        if (heading)
+          heading.textContent = `获取单个用户详情（受保护） GET ${BASE_PATH}/users/${idVal}`;
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        updateHeadings();
+        setUserDetailHeading();
+        doLogin();
+        const idEl = document.getElementById("userIdInput");
+        if (idEl) idEl.addEventListener("input", setUserDetailHeading);
+      });
+
+      async function request(method, url, body, token) {
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = "Bearer " + token;
+        const res = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const json = await res
+          .json()
+          .catch(() => ({ msg: "非 JSON 响应", data: {}, code: res.status }));
+        return json;
+      }
+
+      function show(elId, obj) {
+        document.getElementById(elId).textContent = JSON.stringify(
+          obj,
+          null,
+          2
+        );
+      }
+
+      // 登录后自动填充 token 输入框
+      async function doLogin() {
+        const u = document.getElementById("username").value;
+        const p = document.getElementById("password").value;
+        const r = await request("POST", joinUrl(buildBase(), "auth/login"), {
+          username: u,
+          password: p,
+        });
+        if (r && r.data) {
+          accessToken = r.data.accessToken || "";
+          refreshToken = r.data.refreshToken || "";
+          const accessEl = document.getElementById("accessInput");
+          const refreshEl = document.getElementById("refreshInput");
+          if (accessEl) accessEl.value = accessToken;
+          if (refreshEl) refreshEl.value = refreshToken;
+        }
+        show("loginResult", r);
+      }
+    </script>
+
+    <section>
+      <h2>登录 POST {BASE_PATH}/auth/login</h2>
+      <div class="row">
+        <label>用户名</label><input id="username" value="admin" />
+      </div>
+      <div class="row">
+        <label>密码</label
+        ><input id="password" value="password123" type="password" />
+      </div>
+      <button onclick="doLogin()">登录</button>
+      <pre id="loginResult"></pre>
+    </section>
+
+    <section>
+      <h2>刷新令牌 POST {BASE_PATH}/auth/refresh</h2>
+      <div class="row nowrap">
+        <label>当前 refreshToken</label><input id="refreshInput" />
+      </div>
+      <button
+        onclick="(async () => {
+      const rt = document.getElementById('refreshInput').value || refreshToken;
+      const r = await request('POST', joinUrl(buildBase(), 'auth/refresh'), { refreshToken: rt });
+      if (r && r.data && r.data.accessToken) {
+        accessToken = r.data.accessToken;
+        const accessEl = document.getElementById('accessInput');
+        const accessDetailEl = document.getElementById('accessInputDetail');
+        if (accessEl) accessEl.value = accessToken;
+        if (accessDetailEl) accessDetailEl.value = accessToken;
+      }
+      show('refreshResult', r);
+    })()"
+      >
+        刷新
+      </button>
+      <pre id="refreshResult"></pre>
+    </section>
+
+    <section>
+      <h2>获取所有用户（受保护） GET {BASE_PATH}/users</h2>
+      <div class="row nowrap">
+        <label>当前 accessToken</label><input id="accessInput" value="" />
+      </div>
+      <button
+        onclick="(async () => {
+      const at = document.getElementById('accessInput').value || accessToken;
+      const r = await request('GET', joinUrl(buildBase(), 'users'), null, at);
+      show('usersAllResult', r);
+    })()"
+      >
+        获取所有用户
+      </button>
+      <pre id="usersAllResult"></pre>
+    </section>
+
+    <section>
+      <h2 id="userDetailHeading">
+        获取单个用户详情（受保护） GET {BASE_PATH}/users/{id}
+      </h2>
+      <div class="row nowrap">
+        <label>用户ID</label
+        ><input id="userIdInput" placeholder="请输入用户ID" />
+      </div>
+      <div class="row nowrap">
+        <label>当前 accessToken</label><input id="accessInputDetail" />
+      </div>
+      <button
+        onclick="(async () => {
+      const idRaw = document.getElementById('userIdInput').value.trim();
+      if (!idRaw) { show('userDetailResult', { code: 400, msg: '缺少用户ID', data: {} }); return; }
+      const id = encodeURIComponent(idRaw);
+      const at = document.getElementById('accessInputDetail').value || accessToken;
+      const r = await request('GET', joinUrl(buildBase(), 'users/' + encodeURIComponent(id)), null, at);
+      show('userDetailResult', r);
+    })()"
+      >
+        获取用户详情
+      </button>
+      <pre id="userDetailResult"></pre>
+    </section>
+  </body>
+</html>
